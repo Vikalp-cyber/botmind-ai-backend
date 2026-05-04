@@ -1,11 +1,16 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
     app_name: str = "Botmind AI Backend"
     environment: str = "development"
@@ -54,6 +59,26 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
 
     webhook_timeout_seconds: int = 10
+
+    @model_validator(mode="after")
+    def align_embedding_dimensions_with_ollama_model(self) -> "Settings":
+        """Ollama embed models have fixed widths; env/defaults are often wrong (e.g. 1536 vs 768)."""
+        if self.llm_provider.lower() != "ollama":
+            return self
+        dims_by_model: dict[str, int] = {
+            "nomic-embed-text": 768,
+            "nomic-embed-text:latest": 768,
+            "mxbai-embed-large": 1024,
+            "mxbai-embed-large:latest": 1024,
+            "snowflake-arctic-embed": 1024,
+            "snowflake-arctic-embed:latest": 1024,
+            "all-minilm": 384,
+            "all-minilm:latest": 384,
+        }
+        key = self.ollama_embed_model.strip()
+        if key in dims_by_model:
+            object.__setattr__(self, "embedding_dimensions", dims_by_model[key])
+        return self
 
 
 @lru_cache

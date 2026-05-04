@@ -2,6 +2,8 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Default matches Ollama nomic-embed-text; override at runtime if you use another model/width
+ENV EMBEDDING_DIMENSIONS=768
 
 WORKDIR /app
 
