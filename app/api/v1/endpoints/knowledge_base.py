@@ -16,7 +16,12 @@ router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 
-@router.get("", response_model=list[KnowledgeDocumentResponse])
+@router.get(
+    "",
+    response_model=list[KnowledgeDocumentResponse],
+    summary="List knowledge documents",
+    description="All ingested documents for the tenant with chunk counts.",
+)
 async def list_documents(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin", "member")),
@@ -26,7 +31,13 @@ async def list_documents(
     return await KnowledgeService(session).list_documents(UUID(tenant.tenant_id))
 
 
-@router.post("/text", response_model=KnowledgeDocumentResponse, status_code=201)
+@router.post(
+    "/text",
+    response_model=KnowledgeDocumentResponse,
+    status_code=201,
+    summary="Ingest raw text",
+    description="Chunks, embeds, and stores text for RAG. **Admin only.**",
+)
 async def ingest_text(
     payload: KnowledgeTextIngestRequest,
     tenant=Depends(resolve_tenant_context),
@@ -48,7 +59,13 @@ async def ingest_text(
     return result
 
 
-@router.post("/url", response_model=KnowledgeDocumentResponse, status_code=201)
+@router.post(
+    "/url",
+    response_model=KnowledgeDocumentResponse,
+    status_code=201,
+    summary="Ingest URL",
+    description="Fetches URL, extracts HTML text, then ingests. **Admin only.**",
+)
 async def ingest_url(
     payload: KnowledgeUrlIngestRequest,
     tenant=Depends(resolve_tenant_context),
@@ -70,7 +87,15 @@ async def ingest_url(
     return result
 
 
-@router.post("/file", response_model=KnowledgeDocumentResponse, status_code=201)
+@router.post(
+    "/file",
+    response_model=KnowledgeDocumentResponse,
+    status_code=201,
+    summary="Upload file",
+    description=(
+        "Multipart form: `title` + `file`. Supports **PDF**, **DOCX**, and UTF-8 **text**. **Admin only.**"
+    ),
+)
 async def ingest_file(
     title: str = Form(...),
     file: UploadFile = File(...),

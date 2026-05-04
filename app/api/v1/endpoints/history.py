@@ -9,7 +9,12 @@ from app.schemas.chat import MessageResponse, SessionResponse
 router = APIRouter()
 
 
-@router.get("/sessions", response_model=list[SessionResponse])
+@router.get(
+    "/sessions",
+    response_model=list[SessionResponse],
+    summary="List chat sessions",
+    description="Tenant-scoped sessions for admin or member.",
+)
 async def list_sessions(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin", "member")),
@@ -28,7 +33,12 @@ async def list_sessions(
     ]
 
 
-@router.get("/sessions/{session_id}", response_model=list[MessageResponse])
+@router.get(
+    "/sessions/{session_id}",
+    response_model=list[MessageResponse],
+    summary="Get session messages",
+    description="Messages for a session UUID. **404** if the session does not belong to the tenant.",
+)
 async def get_session_messages(
     session_id: str,
     tenant=Depends(resolve_tenant_context),

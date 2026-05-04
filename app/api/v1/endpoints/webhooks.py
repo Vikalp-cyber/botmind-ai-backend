@@ -9,7 +9,12 @@ from app.services.webhook_service import WebhookService
 router = APIRouter()
 
 
-@router.get("/endpoints", response_model=list[WebhookEndpointResponse])
+@router.get(
+    "/endpoints",
+    response_model=list[WebhookEndpointResponse],
+    summary="List webhook endpoints",
+    description="Configured outbound webhook targets for CRM integrations.",
+)
 async def list_endpoints(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin", "member")),
@@ -28,7 +33,13 @@ async def list_endpoints(
     ]
 
 
-@router.post("/endpoints", response_model=WebhookEndpointResponse, status_code=201)
+@router.post(
+    "/endpoints",
+    response_model=WebhookEndpointResponse,
+    status_code=201,
+    summary="Create webhook endpoint",
+    description="Admin only. Registers URL (and optional secret) for outbound events.",
+)
 async def create_endpoint(
     payload: WebhookEndpointCreate,
     tenant=Depends(resolve_tenant_context),
@@ -50,7 +61,11 @@ async def create_endpoint(
     )
 
 
-@router.post("/dispatch-test")
+@router.post(
+    "/dispatch-test",
+    summary="Send test webhook",
+    description="Admin only. Fires a `crm.test` payload to configured endpoints.",
+)
 async def dispatch_test(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin")),

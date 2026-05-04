@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
+from app.core.openapi import API_DESCRIPTION, OPENAPI_TAGS, custom_openapi
 from app.core.logging import configure_logging
 from app.db.session import close_redis, init_redis
 
@@ -25,8 +26,18 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
+        description=API_DESCRIPTION,
+        openapi_tags=OPENAPI_TAGS,
         lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
     )
+
+    def _openapi() -> dict:
+        return custom_openapi(app)
+
+    app.openapi = _openapi
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,

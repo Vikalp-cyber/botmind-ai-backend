@@ -9,7 +9,12 @@ from app.services.lead_service import LeadService
 router = APIRouter()
 
 
-@router.get("", response_model=list[LeadResponse])
+@router.get(
+    "",
+    response_model=list[LeadResponse],
+    summary="List leads",
+    description="Captured leads for the tenant (admin or member).",
+)
 async def list_leads(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin", "member")),

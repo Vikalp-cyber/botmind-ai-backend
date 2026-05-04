@@ -9,7 +9,12 @@ from app.services.usage_service import UsageService
 router = APIRouter()
 
 
-@router.get("/summary", response_model=UsageSummaryResponse)
+@router.get(
+    "/summary",
+    response_model=UsageSummaryResponse,
+    summary="Usage summary",
+    description="Aggregated tokens, cost, and event counts for the tenant.",
+)
 async def summary(
     tenant=Depends(resolve_tenant_context),
     user=Depends(require_roles("admin", "member")),

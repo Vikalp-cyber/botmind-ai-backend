@@ -43,7 +43,15 @@ async def _authorize_chat(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authentication")
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    summary="Send chat message",
+    description=(
+        "Authenticate with **Bearer JWT** or **X-API-Key** (must match `tenant_id` in body). "
+        "Uses RAG, session memory, and rate limits."
+    ),
+)
 async def chat(
     payload: ChatRequest,
     session: AsyncSession = Depends(get_db_session),
@@ -59,7 +67,10 @@ async def chat(
     return await ChatService(session).chat(payload)
 
 
-@router.websocket("/ws/chat/{tenant_id}/{session_id}")
+@router.websocket(
+    "/ws/chat/{tenant_id}/{session_id}",
+    name="websocket_chat",
+)
 async def websocket_chat(websocket: WebSocket, tenant_id: UUID, session_id: str):
     token = websocket.query_params.get("token")
     if token is None:
