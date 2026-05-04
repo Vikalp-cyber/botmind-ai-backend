@@ -9,7 +9,11 @@ from app.integrations.llm import get_llm_client
 from app.repositories.knowledge_repository import KnowledgeRepository
 from app.schemas.knowledge import KnowledgeDocumentResponse
 from app.utils.chunking import chunk_text, estimate_token_count
-from app.utils.documents import extract_text_from_html, extract_text_from_pdf
+from app.utils.documents import (
+    extract_text_from_docx,
+    extract_text_from_html,
+    extract_text_from_pdf,
+)
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -45,10 +49,19 @@ class KnowledgeService:
     async def ingest_file(self, *, tenant_id: UUID, title: str, file: UploadFile) -> KnowledgeDocumentResponse:
         content = await file.read()
         filename = (file.filename or "uploaded_file").lower()
-        
-        if filename.endswith(".pdf"):
+        content_type = (file.content_type or "").lower()
+
+        is_pdf = filename.endswith(".pdf") or content_type == "application/pdf"
+        is_docx = filename.endswith(".docx") or (
+            "wordprocessingml.document" in content_type and "macroenabled" not in content_type
+        )
+
+        if is_pdf:
             source_type = SourceType.PDF
             raw_text = extract_text_from_pdf(content)
+        elif is_docx:
+            source_type = SourceType.TEXT
+            raw_text = extract_text_from_docx(content)
         else:
             source_type = SourceType.TEXT
             try:
@@ -56,9 +69,11 @@ class KnowledgeService:
             except UnicodeDecodeError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid file format: Could not decode file as UTF-8 text."
+                    detail=(
+                        "Unsupported binary file. Upload a PDF, DOCX, or a plain text file (UTF-8)."
+                    ),
                 )
-            
+
         return await self._ingest(
             tenant_id=tenant_id,
             title=title,

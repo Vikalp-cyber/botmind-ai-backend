@@ -1,7 +1,9 @@
 import logging
 from io import BytesIO
+
 import pdfplumber
 from bs4 import BeautifulSoup
+from docx import Document
 from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,40 @@ def extract_text_from_pdf(data: bytes) -> str:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to parse PDF: The file might be corrupted or encrypted. Error: {str(e)}"
         )
+
+def extract_text_from_docx(data: bytes) -> str:
+    """Extract plain text from a Word .docx (Office Open XML) file."""
+    if len(data) < 4 or data[:2] != b"PK":
+        logger.warning("File rejection: DOCX should be a ZIP-based OOXML document")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format: Not a valid DOCX (expected ZIP package signature).",
+        )
+    try:
+        doc = Document(BytesIO(data))
+        parts: list[str] = []
+        for para in doc.paragraphs:
+            t = para.text.strip()
+            if t:
+                parts.append(t)
+        for table in doc.tables:
+            for row in table.rows:
+                cells = [c.text.strip() for c in row.cells]
+                if any(cells):
+                    parts.append(" | ".join(cells))
+        text = "\n\n".join(parts).strip()
+        if not text:
+            logger.info("DOCX extraction: no text in paragraphs or tables")
+        return text
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to parse DOCX: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to parse DOCX: {e!s}",
+        ) from e
+
 
 def extract_text_from_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
